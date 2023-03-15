@@ -2,10 +2,15 @@ var createError = require("http-errors");
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
+var bodyParser = require("body-parser");
 var logger = require("morgan");
-
+var cors = require("cors");
 var indexRouter = require("./routes/index");
 var patientRouter = require("./routes/patient");
+var medicoRouter = require("./routes/medico");
+var medicineRouter = require("./routes/medicine");
+var serviceRouter = require("./routes/service");
+var examRouter = require("./routes/exam");
 var app = express();
 
 // view engine setup
@@ -17,9 +22,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 app.use("/", indexRouter);
 app.use("/patient", patientRouter);
+app.use("/medico", medicoRouter);
+app.use("/medicine", medicineRouter);
+app.use("/service", serviceRouter);
+app.use("/exam", examRouter);
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));

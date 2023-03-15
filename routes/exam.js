@@ -1,6 +1,6 @@
 var express = require("express");
 var mongoose = require("mongoose");
-var { patientSchema } = require("../model/schemas");
+var { examSchema } = require("../model/schemas");
 var { uri } = require("../model");
 
 var router = express.Router();
@@ -9,15 +9,15 @@ router.get("/", async function (req, res, next) {
 });
 router.get("/getall", async (req, res) => {
   mongoose.connect(uri);
-  var Patient = mongoose.model("patient", patientSchema);
-  var dbres = await Patient.find({}).exec();
+  var Exam = mongoose.model("exam", examSchema);
+  var dbres = await Exam.find({}).exec();
   res.send(dbres);
 });
 router.post("/add", async (req, res) => {
   mongoose.connect(uri);
-  var Patient = mongoose.model("patient", patientSchema);
-  var newPatient = new Patient(req.body);
-  newPatient
+  var Exam = mongoose.model("exam", examSchema);
+  var newExam = new Exam(JSON.parse(req.body.str));
+  newExam
     .save()
     .then((dbres) => {
       res.send(dbres);
@@ -28,16 +28,18 @@ router.post("/add", async (req, res) => {
 });
 router.post("/delete", async (req, res) => {
   mongoose.connect(uri);
-  var Patient = mongoose.model("patient", patientSchema);
-  var dbres = await Patient.deleteOne({ _id: req.body.key });
+  var Exam = mongoose.model("exam", examSchema);
+  var dbres = await Exam.deleteOne({ _id: req.body._id });
   res.send(dbres);
 });
 router.post("/update", async (req, res) => {
   mongoose.connect(uri);
-  var Patient = mongoose.model("patient", patientSchema);
-  var id = req.body._id;
-  delete req.body._id;
-  Patient.findByIdAndUpdate(id, req.body)
+  var Exam = mongoose.model("exam", examSchema);
+  var obj = JSON.parse(req.body.str);
+  console.log(obj);
+  var id = obj._id;
+  delete obj._id;
+  Exam.findByIdAndUpdate(id, obj)
     .exec()
     .then((dbres) => {
       res.send(dbres);
