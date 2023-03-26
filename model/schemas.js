@@ -26,6 +26,7 @@ const medicineSchema = new mongoose.Schema(
     origin: String,
     dueDate: String,
     unit: String,
+    price: Number,
   },
   { collection: "medicine" }
 );
@@ -45,7 +46,7 @@ const examSchema = new mongoose.Schema(
     service: String,
     examDate: String,
     description: String,
-    medicine: [String],
+    medicine: [Object],
   },
   { collection: "exam" }
 );

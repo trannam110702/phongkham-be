@@ -17,6 +17,7 @@ router.post("/add", async (req, res) => {
   mongoose.connect(uri);
   var Exam = mongoose.model("exam", examSchema);
   var newExam = new Exam(JSON.parse(req.body.str));
+  console.log(newExam);
   newExam
     .save()
     .then((dbres) => {
