@@ -47,5 +47,10 @@ router.post("/update", async (req, res) => {
       res.send(e);
     });
 });
-
+router.get("/:id", async (req, res) => {
+  mongoose.connect(uri);
+  var Service = mongoose.model("service", serviceSchema);
+  var dbres = await Service.findById(req.params["id"]).exec();
+  res.send(dbres);
+});
 module.exports = router;

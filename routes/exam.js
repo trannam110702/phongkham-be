@@ -1,6 +1,6 @@
 var express = require("express");
 var mongoose = require("mongoose");
-var { examSchema } = require("../model/schemas");
+var { examSchema, medicineSchema, serviceSchema } = require("../model/schemas");
 var { uri } = require("../model");
 
 var router = express.Router();
@@ -13,6 +13,7 @@ router.get("/getall", async (req, res) => {
   var dbres = await Exam.find({}).exec();
   res.send(dbres);
 });
+
 router.post("/add", async (req, res) => {
   mongoose.connect(uri);
   var Exam = mongoose.model("exam", examSchema);

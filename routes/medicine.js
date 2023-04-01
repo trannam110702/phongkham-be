@@ -5,7 +5,8 @@ var { uri } = require("../model");
 
 var router = express.Router();
 router.get("/", async function (req, res, next) {
-  res.send("hi");
+  console.log(req);
+  res.send("get /");
 });
 router.get("/getall", async (req, res) => {
   mongoose.connect(uri);
@@ -47,5 +48,10 @@ router.post("/update", async (req, res) => {
       res.send(e);
     });
 });
-
+router.get("/:id", async (req, res) => {
+  mongoose.connect(uri);
+  var Medicine = mongoose.model("medicine", medicineSchema);
+  var dbres = await Medicine.findById(req.params["id"]).exec();
+  res.send(dbres);
+});
 module.exports = router;
