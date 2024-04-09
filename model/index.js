@@ -1,3 +1,15 @@
-var uri =
-  "mongodb+srv://namtran:namcoi123@cluster0.gej9x9n.mongodb.net/phongkham?retryWrites=true&w=majority";
-module.exports = { uri };
+const pg = require("pg");
+const { Pool } = pg;
+
+const pool = new Pool({
+  host: "34.123.29.31",
+  port: 5432,
+  database: "postgres",
+  user: "postgres",
+  password: "namcoi123",
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+module.exports = pool;

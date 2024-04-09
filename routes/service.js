@@ -1,56 +1,79 @@
 var express = require("express");
-var mongoose = require("mongoose");
-var { serviceSchema } = require("../model/schemas");
-var { uri } = require("../model");
+var pool = require("../model/index");
 
 var router = express.Router();
+
 router.get("/", async function (req, res, next) {
-  res.send("hi");
+  console.log(req);
+  res.send("get /");
 });
+
 router.get("/getall", async (req, res) => {
-  mongoose.connect(uri);
-  var Service = mongoose.model("service", serviceSchema);
-  var dbres = await Service.find({}).exec();
-  res.send(dbres);
+  try {
+    const client = await pool.connect();
+    const result = await client.query("SELECT * FROM service");
+    client.release();
+    res.send(result.rows);
+  } catch (error) {
+    console.error("Error executing query", error);
+    res.status(500).send("Internal server error");
+  }
 });
+
 router.post("/add", async (req, res) => {
-  mongoose.connect(uri);
-  var Service = mongoose.model("service", serviceSchema);
-  var newService = new Service(req.body);
-  console.log(req.body);
-  newService
-    .save()
-    .then((dbres) => {
-      res.send(dbres);
-    })
-    .catch((e) => {
-      res.send(e);
-    });
+  try {
+    const client = await pool.connect();
+    const { name, price, description } = req.body;
+    const result = await client.query(
+      "INSERT INTO service (name, price, description) VALUES ($1, $2, $3) RETURNING *",
+      [name, price, description]
+    );
+    client.release();
+    res.send(result.rows[0]);
+  } catch (error) {
+    console.error("Error executing query", error);
+    res.status(500).send("Internal server error");
+  }
 });
+
 router.post("/delete", async (req, res) => {
-  mongoose.connect(uri);
-  var Service = mongoose.model("service", serviceSchema);
-  var dbres = await Service.deleteOne({ _id: req.body._id });
-  res.send(dbres);
+  try {
+    const client = await pool.connect();
+    const result = await client.query("DELETE FROM service WHERE code = $1", [req.body.code]);
+    client.release();
+    res.send(result.rows);
+  } catch (error) {
+    console.error("Error executing query", error);
+    res.status(500).send("Internal server error");
+  }
 });
+
 router.post("/update", async (req, res) => {
-  mongoose.connect(uri);
-  var Service = mongoose.model("service", serviceSchema);
-  var id = req.body._id;
-  delete req.body._id;
-  Service.findByIdAndUpdate(id, req.body)
-    .exec()
-    .then((dbres) => {
-      res.send(dbres);
-    })
-    .catch((e) => {
-      res.send(e);
-    });
+  try {
+    const client = await pool.connect();
+    const { code, name, price, description } = req.body;
+    const result = await client.query(
+      "UPDATE service SET name = $2, price = $3, description = $4 WHERE code = $1 RETURNING *",
+      [code, name, price, description]
+    );
+    client.release();
+    res.send(result.rows[0]);
+  } catch (error) {
+    console.error("Error executing query", error);
+    res.status(500).send("Internal server error");
+  }
 });
-router.get("/:id", async (req, res) => {
-  mongoose.connect(uri);
-  var Service = mongoose.model("service", serviceSchema);
-  var dbres = await Service.findById(req.params["id"]).exec();
-  res.send(dbres);
+
+router.get("/:code", async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const result = await client.query("SELECT * FROM service WHERE code = $1", [req.params.code]);
+    client.release();
+    res.send(result.rows[0]);
+  } catch (error) {
+    console.error("Error executing query", error);
+    res.status(500).send("Internal server error");
+  }
 });
+
 module.exports = router;

@@ -11,7 +11,7 @@ router.get("/", async function (req, res, next) {
 router.get("/getall", async (req, res) => {
   try {
     const client = await pool.connect();
-    const result = await client.query("SELECT * FROM medicine");
+    const result = await client.query("SELECT * FROM people");
     client.release();
     res.send(result.rows);
   } catch (error) {
@@ -19,19 +19,25 @@ router.get("/getall", async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
-
+router.get("/getbytype", async (req, res) => {
+  try {
+    const client = await pool.connect();
+    const type = req.query.type;
+    const result = await client.query("SELECT * FROM people WHERE type = $1", [type]);
+    client.release();
+    res.send(result.rows);
+  } catch (error) {
+    console.error("Error executing query", error);
+    res.status(500).send("Internal server error");
+  }
+});
 router.post("/add", async (req, res) => {
   try {
     const client = await pool.connect();
-    const { name, origin, dueDate, unit, price } = req.body;
-    console.log(req.body);
-
-    const [day, month, year] = dueDate.split("/");
-    const formattedDueDate = `${year}-${month}-${day}`;
-
+    const { cccd, type, name, phonenumber, email, address } = req.body;
     const result = await client.query(
-      "INSERT INTO medicine (name, origin, dueDate, unit, price) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [name, origin, formattedDueDate, unit, price]
+      "INSERT INTO people (cccd, type, name, phonenumber, email, address) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [cccd, type, name, phonenumber, email, address]
     );
     client.release();
     res.send(result.rows[0]);
@@ -44,7 +50,7 @@ router.post("/add", async (req, res) => {
 router.post("/delete", async (req, res) => {
   try {
     const client = await pool.connect();
-    const result = await client.query("DELETE FROM medicine WHERE code = $1", [req.body.code]);
+    const result = await client.query("DELETE FROM people WHERE code = $1", [req.body.code]);
     client.release();
     res.send(result.rows);
   } catch (error) {
@@ -56,10 +62,10 @@ router.post("/delete", async (req, res) => {
 router.post("/update", async (req, res) => {
   try {
     const client = await pool.connect();
-    const { code, name, origin, dueDate, unit, price } = req.body;
+    const { code, cccd, type, name, phonenumber, email, address } = req.body;
     const result = await client.query(
-      "UPDATE medicine SET name = $2, origin = $3, dueDate = $4, unit = $5, price = $6 WHERE code = $1 RETURNING *",
-      [code, name, origin, dueDate, unit, price]
+      "UPDATE people SET cccd = $2, type = $3, name = $4, phonenumber = $5, email = $6, address = $7 WHERE code = $1 RETURNING *",
+      [code, cccd, type, name, phonenumber, email, address]
     );
     client.release();
     res.send(result.rows[0]);
@@ -72,7 +78,7 @@ router.post("/update", async (req, res) => {
 router.get("/:code", async (req, res) => {
   try {
     const client = await pool.connect();
-    const result = await client.query("SELECT * FROM medicine WHERE code = $1", [req.params.code]);
+    const result = await client.query("SELECT * FROM people WHERE code = $1", [req.params.code]);
     client.release();
     res.send(result.rows[0]);
   } catch (error) {
