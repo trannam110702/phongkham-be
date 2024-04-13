@@ -1,18 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE
-    "session" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL
-    )
-WITH
-    (OIDS = FALSE);
-
-ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
-
-CREATE INDEX "IDX_session_expire" ON "session" ("expire");
-
 --PEOPLE--
 CREATE TABLE
     people (
@@ -22,7 +9,7 @@ CREATE TABLE
         name text NOT NULL,
         phonenumber text NOT NULL,
         email text NOT NULL,
-        address integer NOT NULL
+        address text NOT NULL
     );
 
 --ACCOUNT--
@@ -60,7 +47,6 @@ CREATE TABLE
         code uuid DEFAULT uuid_generate_v4 () PRIMARY KEY,
         patient uuid NOT NULL,
         medico uuid NOT NULL,
-        service uuid NOT NULL,
         examDate date NOT NULL,
         description text NOT NULL
     );
@@ -72,6 +58,14 @@ CREATE TABLE
         medicine uuid REFERENCES medicine (code),
         quantity integer NOT NULL,
         PRIMARY KEY (exam, medicine)
+    );
+
+--EXAM_SERVICE--
+CREATE TABLE
+    exam_service (
+        exam uuid REFERENCES exam (code) ON DELETE CASCADE,
+        service uuid REFERENCES service (code),
+        PRIMARY KEY (exam, service)
     );
 
 --INVOICE--
@@ -103,7 +97,7 @@ CREATE TABLE
         status text NOT NULL
     );
 
--- Inserting into the people table
+-- Generate mock data for People table
 INSERT INTO
     people (
         code,
@@ -117,33 +111,24 @@ INSERT INTO
 VALUES
     (
         uuid_generate_v4 (),
-        '123456789',
+        '1234567890',
         'patient',
         'John Doe',
         '123-456-7890',
-        'john@example.com',
-        123
+        'john.doe@example.com',
+        '123 Main St'
     ),
     (
         uuid_generate_v4 (),
-        '987654321',
+        '0987654321',
         'doctor',
         'Dr. Jane Smith',
         '987-654-3210',
-        'jane@example.com',
-        456
-    ),
-    (
-        uuid_generate_v4 (),
-        '456123789',
-        'nurse',
-        'Alice Johnson',
-        '789-123-4560',
-        'alice@example.com',
-        789
+        'jane.smith@example.com',
+        '456 Oak St'
     );
 
--- Inserting into the account table
+-- Generate mock data for Account table
 INSERT INTO
     account (code, people, username, password)
 VALUES
@@ -157,7 +142,7 @@ VALUES
             WHERE
                 name = 'John Doe'
         ),
-        'john_doe',
+        'johndoe',
         'password123'
     ),
     (
@@ -170,56 +155,32 @@ VALUES
             WHERE
                 name = 'Dr. Jane Smith'
         ),
-        'dr_smith',
-        'doctor456'
-    ),
-    (
-        uuid_generate_v4 (),
-        (
-            SELECT
-                code
-            FROM
-                people
-            WHERE
-                name = 'Alice Johnson'
-        ),
-        'alice_nurse',
-        'nurse789'
+        'drjanesmith',
+        'securepassword'
     );
 
--- Inserting into the medicine table
+-- Generate mock data for Medicine table
 INSERT INTO
-    medicine (code, name, origin, area, dueDate, unit, price)
+    medicine (code, name, origin, dueDate, unit, price)
 VALUES
     (
         uuid_generate_v4 (),
         'Paracetamol',
         'USA',
-        100,
-        '2024-04-05',
+        '2024-04-30',
         'mg',
         10
     ),
     (
         uuid_generate_v4 (),
         'Amoxicillin',
-        'Europe',
-        50,
-        '2024-04-05',
+        'Germany',
+        '2024-05-15',
         'mg',
         15
-    ),
-    (
-        uuid_generate_v4 (),
-        'Aspirin',
-        'Germany',
-        75,
-        '2024-04-05',
-        'mg',
-        8
     );
 
--- Inserting into the service table
+-- Generate mock data for Service table
 INSERT INTO
     service (code, name, price, description)
 VALUES
@@ -234,24 +195,11 @@ VALUES
         'X-Ray',
         100,
         'X-Ray imaging service'
-    ),
-    (
-        uuid_generate_v4 (),
-        'Blood Test',
-        80,
-        'Blood test service'
     );
 
--- Inserting into the exam table
+-- Generate mock data for Exam table
 INSERT INTO
-    exam (
-        code,
-        patient,
-        medico,
-        service,
-        examDate,
-        description
-    )
+    exam (code, patient, medico, examDate, description)
 VALUES
     (
         uuid_generate_v4 (),
@@ -271,15 +219,7 @@ VALUES
             WHERE
                 name = 'Dr. Jane Smith'
         ),
-        (
-            SELECT
-                code
-            FROM
-                service
-            WHERE
-                name = 'Consultation'
-        ),
-        '2024-04-05',
+        '2024-04-14',
         'Routine checkup'
     ),
     (
@@ -300,48 +240,11 @@ VALUES
             WHERE
                 name = 'Dr. Jane Smith'
         ),
-        (
-            SELECT
-                code
-            FROM
-                service
-            WHERE
-                name = 'Blood Test'
-        ),
-        '2024-04-06',
-        'Blood test for allergies'
-    ),
-    (
-        uuid_generate_v4 (),
-        (
-            SELECT
-                code
-            FROM
-                people
-            WHERE
-                name = 'John Doe'
-        ),
-        (
-            SELECT
-                code
-            FROM
-                people
-            WHERE
-                name = 'Dr. Jane Smith'
-        ),
-        (
-            SELECT
-                code
-            FROM
-                service
-            WHERE
-                name = 'X-Ray'
-        ),
-        '2024-04-07',
-        'X-Ray for chest pain'
+        '2024-04-20',
+        'X-Ray examination'
     );
 
--- Inserting into the exam_medicine table
+-- Generate mock data for Exam_Medicine table
 INSERT INTO
     exam_medicine (exam, medicine, quantity)
 VALUES
@@ -362,7 +265,7 @@ VALUES
             WHERE
                 name = 'Paracetamol'
         ),
-        2
+        1
     ),
     (
         (
@@ -371,7 +274,7 @@ VALUES
             FROM
                 exam
             WHERE
-                description = 'Blood test for allergies'
+                description = 'X-Ray examination'
         ),
         (
             SELECT
@@ -381,7 +284,30 @@ VALUES
             WHERE
                 name = 'Amoxicillin'
         ),
-        1
+        2
+    );
+
+-- Generate mock data for Exam_Service table
+INSERT INTO
+    exam_service (exam, service)
+VALUES
+    (
+        (
+            SELECT
+                code
+            FROM
+                exam
+            WHERE
+                description = 'Routine checkup'
+        ),
+        (
+            SELECT
+                code
+            FROM
+                service
+            WHERE
+                name = 'Consultation'
+        )
     ),
     (
         (
@@ -390,20 +316,19 @@ VALUES
             FROM
                 exam
             WHERE
-                description = 'X-Ray for chest pain'
+                description = 'X-Ray examination'
         ),
         (
             SELECT
                 code
             FROM
-                medicine
+                service
             WHERE
-                name = 'Aspirin'
-        ),
-        1
+                name = 'X-Ray'
+        )
     );
 
--- Inserting into the invoice table
+-- Generate mock data for Invoice table
 INSERT INTO
     invoice (code, exam, service_fee, date)
 VALUES
@@ -418,7 +343,7 @@ VALUES
                 description = 'Routine checkup'
         ),
         50,
-        '2024-04-05'
+        '2024-04-15'
     ),
     (
         uuid_generate_v4 (),
@@ -428,26 +353,13 @@ VALUES
             FROM
                 exam
             WHERE
-                description = 'Blood test for allergies'
-        ),
-        80,
-        '2024-04-06'
-    ),
-    (
-        uuid_generate_v4 (),
-        (
-            SELECT
-                code
-            FROM
-                exam
-            WHERE
-                description = 'X-Ray for chest pain'
+                description = 'X-Ray examination'
         ),
         100,
-        '2024-04-07'
+        '2024-04-21'
     );
 
--- Inserting into the invoice_medicine table
+-- Generate mock data for Invoice_Medicine table
 INSERT INTO
     invoice_medicine (invoice, medicine, quantity, price)
 VALUES
@@ -458,7 +370,7 @@ VALUES
             FROM
                 invoice
             WHERE
-                date = '2024-04-05'
+                date = '2024-04-15'
         ),
         (
             SELECT
@@ -468,7 +380,7 @@ VALUES
             WHERE
                 name = 'Paracetamol'
         ),
-        2,
+        1,
         10
     ),
     (
@@ -478,7 +390,7 @@ VALUES
             FROM
                 invoice
             WHERE
-                date = '2024-04-06'
+                date = '2024-04-21'
         ),
         (
             SELECT
@@ -488,31 +400,11 @@ VALUES
             WHERE
                 name = 'Amoxicillin'
         ),
-        1,
+        2,
         15
-    ),
-    (
-        (
-            SELECT
-                code
-            FROM
-                invoice
-            WHERE
-                date = '2024-04-07'
-        ),
-        (
-            SELECT
-                code
-            FROM
-                medicine
-            WHERE
-                name = 'Aspirin'
-        ),
-        1,
-        8
     );
 
--- Inserting into the schedule table
+-- Generate mock data for Schedule table
 INSERT INTO
     schedule (code, medico, service, date, status)
 VALUES
@@ -534,29 +426,8 @@ VALUES
             WHERE
                 name = 'Consultation'
         ),
-        '2024-04-05',
-        'scheduled'
-    ),
-    (
-        uuid_generate_v4 (),
-        (
-            SELECT
-                code
-            FROM
-                people
-            WHERE
-                name = 'Dr. Jane Smith'
-        ),
-        (
-            SELECT
-                code
-            FROM
-                service
-            WHERE
-                name = 'Blood Test'
-        ),
-        '2024-04-06',
-        'scheduled'
+        '2024-04-15',
+        'Scheduled'
     ),
     (
         uuid_generate_v4 (),
@@ -576,6 +447,6 @@ VALUES
             WHERE
                 name = 'X-Ray'
         ),
-        '2024-04-07',
-        'scheduled'
+        '2024-04-20',
+        'Scheduled'
     );

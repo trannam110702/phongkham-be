@@ -11,28 +11,53 @@ router.get("/getall", async (req, res) => {
   try {
     const client = await pool.connect();
 
-    // Query to select all exams with associated exam_medicine data
+    // Query to select all exams with associated exam_medicine and exam_service data
     const query = `
-      SELECT e.*, em.medicine, em.quantity
+      SELECT e.*, 
+             p_patient.name as patient_name, 
+             p_medico.name as medico_name, 
+             em.medicine, 
+             em.quantity,
+             es.service as services
       FROM exam e
       LEFT JOIN exam_medicine em ON e.code = em.exam
+      LEFT JOIN people p_patient ON e.patient = p_patient.code
+      LEFT JOIN people p_medico ON e.medico = p_medico.code
+      LEFT JOIN exam_service es ON e.code = es.exam
+      LEFT JOIN service s ON es.service = s.code
     `;
 
     // Execute the query
     const result = await client.query(query);
 
-    // Process the result and organize exam data along with exam_medicine data
+    // Process the result and organize exam data along with exam_medicine and exam_service data
     const exams = {};
     result.rows.forEach((row) => {
-      const { code, medicine, quantity, ...examData } = row;
+      const {
+        code,
+        patient_name,
+        medico_name,
+        medicine,
+        quantity,
+        service_name,
+        services,
+        ...examData
+      } = row;
       if (!exams[code]) {
         exams[code] = {
+          code,
           ...examData,
+          patient_name,
+          medico_name,
           medicines: [],
+          services: [],
         };
       }
       if (medicine) {
         exams[code].medicines.push({ medicine, quantity });
+      }
+      if (services) {
+        exams[code].services.push({ services });
       }
     });
 
@@ -51,23 +76,29 @@ router.post("/add", async (req, res) => {
   const client = await pool.connect();
   try {
     // Extract exam data from request body
-    const { patient, medico, service, examDate, description, medicines } = req.body;
+    const { medico, patient, services, examDate, description, medicines } = req.body;
 
     // Start a transaction
     await client.query("BEGIN");
 
     // Insert into the exam table
     const examQuery =
-      "INSERT INTO exam (patient, medico, service, examDate, description) VALUES ($1, $2, $3, $4, $5) RETURNING code";
-    const examValues = [patient, medico, service, examDate, description];
+      "INSERT INTO exam (medico, patient, examDate, description) VALUES ($1, $2, $3, $4) RETURNING code";
+    const examValues = [medico, patient, examDate, description];
     const examResult = await client.query(examQuery, examValues);
     const examCode = examResult.rows[0].code;
+
+    // Insert into the exam_service table for each service provided
+    const insertServiceQuery = "INSERT INTO exam_service (exam, service) VALUES ($1, $2)";
+    for (const serviceId of services) {
+      await client.query(insertServiceQuery, [examCode, serviceId]);
+    }
 
     // Insert into the exam_medicine table for each medicine provided
     const insertMedicineQuery =
       "INSERT INTO exam_medicine (exam, medicine, quantity) VALUES ($1, $2, $3)";
-    for (const { medicine, quantity } of medicines) {
-      await client.query(insertMedicineQuery, [examCode, medicine, quantity]);
+    for (const { medi, num } of medicines) {
+      await client.query(insertMedicineQuery, [examCode, medi, num]);
     }
 
     // Commit the transaction
@@ -88,7 +119,7 @@ router.post("/add", async (req, res) => {
 router.post("/delete", async (req, res) => {
   try {
     const client = await pool.connect();
-    const result = await client.query("DELETE FROM exam WHERE id = $1", [req.body.id]);
+    const result = await client.query("DELETE FROM exam WHERE code = $1", [req.body.code]);
     client.release();
     res.send(result.rows);
   } catch (error) {
