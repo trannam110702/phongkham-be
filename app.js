@@ -12,6 +12,7 @@ var serviceRouter = require("./routes/service");
 var examRouter = require("./routes/exam");
 var invoiceRouter = require("./routes/invoice");
 var scheduleRouter = require("./routes/schedule");
+var reportRouter = require("./routes/report");
 var loginRouter = require("./routes/login");
 
 var app = express();
@@ -38,6 +39,7 @@ app.use("/service", serviceRouter);
 app.use("/exam", examRouter);
 app.use("/invoice", invoiceRouter);
 app.use("/schedule", scheduleRouter);
+app.use("/report", reportRouter);
 app.use("/login", loginRouter);
 
 // catch 404 and forward to error handler

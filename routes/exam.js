@@ -16,7 +16,7 @@ router.get("/getall", async (req, res) => {
       SELECT e.*, 
              p_patient.name as patient_name, 
              p_medico.name as medico_name, 
-             em.medicine, 
+             em.medicine,
              em.quantity,
              es.service as services
       FROM exam e
@@ -54,10 +54,16 @@ router.get("/getall", async (req, res) => {
         };
       }
       if (medicine) {
-        exams[code].medicines.push({ medicine, quantity });
+        const medicineExists = exams[code].medicines.some((med) => med.medicine === medicine);
+        if (!medicineExists) {
+          exams[code].medicines.push({ medicine, quantity });
+        }
       }
       if (services) {
-        exams[code].services.push({ services });
+        const serviceExists = exams[code].services.some((serv) => serv.services === services);
+        if (!serviceExists) {
+          exams[code].services.push({ services });
+        }
       }
     });
 
@@ -131,17 +137,26 @@ router.post("/delete", async (req, res) => {
 router.post("/update", async (req, res) => {
   const client = await pool.connect();
   try {
-    const { code, patient, medico, service, examDate, description, medicines } = req.body;
-
+    const { code, medico, patient, examDate, description, services, medicines } = req.body;
     // Start a transaction
     await client.query("BEGIN");
 
     // Update the exam table
     const updateExamQuery =
-      "UPDATE exam SET patient = $2, medico = $3, service = $4, examDate = $5, description = $6 WHERE code = $1 RETURNING *";
-    const updateExamValues = [code, patient, medico, service, examDate, description];
+      "UPDATE exam SET medico = $2, patient = $3, examDate = $4, description = $5 WHERE code = $1 RETURNING *";
+    const updateExamValues = [code, medico, patient, examDate, description];
     const updatedExamResult = await client.query(updateExamQuery, updateExamValues);
     const updatedExam = updatedExamResult.rows[0];
+
+    // Delete existing exam_service records for this exam
+    const deleteExamServiceQuery = "DELETE FROM exam_service WHERE exam = $1";
+    await client.query(deleteExamServiceQuery, [code]);
+
+    // Insert updated exam_service records
+    const insertExamServiceQuery = "INSERT INTO exam_service (exam, service) VALUES ($1, $2)";
+    for (const serviceId of services) {
+      await client.query(insertExamServiceQuery, [code, serviceId]);
+    }
 
     // Delete existing exam_medicine records for this exam
     const deleteExamMedicineQuery = "DELETE FROM exam_medicine WHERE exam = $1";
@@ -150,8 +165,8 @@ router.post("/update", async (req, res) => {
     // Insert updated exam_medicine records
     const insertExamMedicineQuery =
       "INSERT INTO exam_medicine (exam, medicine, quantity) VALUES ($1, $2, $3)";
-    for (const { medicine, quantity } of medicines) {
-      await client.query(insertExamMedicineQuery, [code, medicine, quantity]);
+    for (const { medi, num } of medicines) {
+      await client.query(insertExamMedicineQuery, [code, medi, num]);
     }
 
     // Commit the transaction

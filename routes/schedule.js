@@ -3,7 +3,7 @@ const pool = require("../model/index");
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/getall", async (req, res) => {
   try {
     const client = await pool.connect();
     const result = await client.query("SELECT * FROM schedule");
@@ -18,10 +18,10 @@ router.get("/", async (req, res) => {
 router.post("/add", async (req, res) => {
   const client = await pool.connect();
   try {
-    const { medico, service, date, status } = req.body;
+    const { name, phonenumber, examDate } = req.body;
     const result = await client.query(
-      "INSERT INTO schedule (medico, service, date, status) VALUES ($1, $2, $3, $4) RETURNING *",
-      [medico, service, date, status]
+      "INSERT INTO schedule (name, phonenumber, date, status) VALUES ($1, $2, $3, $4) RETURNING *",
+      [name, phonenumber, examDate, "new"]
     );
     client.release();
     res.send(result.rows[0]);
@@ -46,10 +46,10 @@ router.post("/delete", async (req, res) => {
 router.post("/update", async (req, res) => {
   try {
     const client = await pool.connect();
-    const { code, medico, service, date, status } = req.body;
+    const { code, status } = req.body;
     const result = await client.query(
-      "UPDATE schedule SET medico = $2, service = $3, date = $4, status = $5 WHERE code = $1 RETURNING *",
-      [code, medico, service, date, status]
+      "UPDATE schedule SET status = $2 WHERE code = $1 RETURNING *",
+      [code, status]
     );
     client.release();
     res.send(result.rows[0]);
