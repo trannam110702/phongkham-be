@@ -48,7 +48,8 @@ CREATE TABLE
         patient uuid NOT NULL,
         medico uuid NOT NULL,
         examDate date NOT NULL,
-        description text NOT NULL
+        diagnostic text,
+        description text
     );
 
 --EXAM_MEDICINE--
@@ -91,8 +92,8 @@ CREATE TABLE
 CREATE TABLE
     schedule (
         code uuid DEFAULT uuid_generate_v4 () PRIMARY KEY,
-        medico uuid REFERENCES people (code) ON DELETE CASCADE,
-        service uuid REFERENCES service (code) ON DELETE CASCADE,
+        name text,
+        phonenumber text,
         date date NOT NULL,
         status text NOT NULL
     );

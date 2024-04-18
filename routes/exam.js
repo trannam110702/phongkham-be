@@ -82,15 +82,15 @@ router.post("/add", async (req, res) => {
   const client = await pool.connect();
   try {
     // Extract exam data from request body
-    const { medico, patient, services, examDate, description, medicines } = req.body;
+    const { medico, patient, services, examDate, description, medicines, diagnostic } = req.body;
 
     // Start a transaction
     await client.query("BEGIN");
 
     // Insert into the exam table
     const examQuery =
-      "INSERT INTO exam (medico, patient, examDate, description) VALUES ($1, $2, $3, $4) RETURNING code";
-    const examValues = [medico, patient, examDate, description];
+      "INSERT INTO exam (medico, patient, examDate, description, diagnostic) VALUES ($1, $2, $3, $4, $5) RETURNING code";
+    const examValues = [medico, patient, examDate, description, diagnostic];
     const examResult = await client.query(examQuery, examValues);
     const examCode = examResult.rows[0].code;
 
@@ -137,14 +137,15 @@ router.post("/delete", async (req, res) => {
 router.post("/update", async (req, res) => {
   const client = await pool.connect();
   try {
-    const { code, medico, patient, examDate, description, services, medicines } = req.body;
+    const { code, medico, patient, examDate, description, services, medicines, diagnostic } =
+      req.body;
     // Start a transaction
     await client.query("BEGIN");
 
     // Update the exam table
     const updateExamQuery =
-      "UPDATE exam SET medico = $2, patient = $3, examDate = $4, description = $5 WHERE code = $1 RETURNING *";
-    const updateExamValues = [code, medico, patient, examDate, description];
+      "UPDATE exam SET medico = $2, patient = $3, examDate = $4, description = $5, diagnostic = $6 WHERE code = $1 RETURNING *";
+    const updateExamValues = [code, medico, patient, examDate, description, diagnostic];
     const updatedExamResult = await client.query(updateExamQuery, updateExamValues);
     const updatedExam = updatedExamResult.rows[0];
 
